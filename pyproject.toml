@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pv-valorisation"
+version = "0.1.0"
+description = "Analyse locale de valorisation du surplus photovoltaïque"
+requires-python = ">=3.10"
+dependencies = ["pandas>=2.0", "numpy>=1.24", "PyYAML>=6.0", "openpyxl>=3.1"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ingest*", "model*", "finance*", "report*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
