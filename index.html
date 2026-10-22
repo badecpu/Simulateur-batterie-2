@@ -1,494 +1,117 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Simulateur Batterie Solaire</title>
-<meta name="theme-color" content="#10161d">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="SimBatterie">
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="Simulation locale de rentabilité d'une batterie domestique à partir d'un export Shelly 3EM.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <title>Shelly Battery Simulator</title>
 </head>
 <body>
-
 <header class="topbar">
-  <h1>Simulateur Batterie</h1>
-  <span class="subtitle" id="periodLabel">Aucune donnée</span>
+  <div>
+    <div class="eyebrow">PWA · 100 % local</div>
+    <h1>Shelly Battery Simulator</h1>
+  </div>
+  <div class="top-actions">
+    <label class="button primary" for="csvInput">Importer l'historique Shelly (CSV)</label>
+    <input id="csvInput" type="file" accept=".csv,text/csv" hidden>
+    <button id="demoBtn" class="button ghost">Données de démonstration</button>
+  </div>
 </header>
 
-<main>
-
-  <!-- ================= DASHBOARD ================= -->
-  <section class="view active" id="view-dashboard">
-
-    <div class="card">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v12m0 0-4-4m4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Import Shelly EM3
-      </h2>
-      <label class="btn btn-primary" for="csvInput">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2Z" stroke-linejoin="round"/></svg>
-        Importer un dossier d'exports (CSV)
-      </label>
-      <input type="file" id="csvInput" multiple webkitdirectory>
-      <button class="btn btn-secondary" id="pickFilesBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" stroke-linejoin="round"/><path d="M14 2v6h6" stroke-linejoin="round"/><path d="M9 15l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Choisir des fichiers (sélection multiple)
-      </button>
-      <input type="file" id="csvInputFiles" multiple style="display:none;">
-      <p class="note field-hint">Astuce iPhone : dans le sélecteur « Fichiers », touche d'abord <strong>Sélectionner</strong> en haut à droite, puis coche chaque CSV avant de valider — un simple appui sur un fichier n'en ouvre qu'un seul.</p>
-      <div class="file-status" id="fileStatus">Aucune donnée importée pour le moment.</div>
-      <div class="file-status err" id="missingDaysStatus" style="display:none;"></div>
-      <div class="file-status" id="historyStatus"></div>
-    </div>
-
-    <div id="resultsEmpty" class="empty-state">
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" stroke-linejoin="round"/></svg>
-      <p>Importez un export CSV Shelly EM3 pour voir la simulation de rentabilité.</p>
-    </div>
-
-    <div id="results" style="display:none;">
-
-      <div class="card">
-        <h2>
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" stroke-linejoin="round"/></svg>
-          Synthèse globale (panneaux seuls)
-        </h2>
-        <div class="kpi-grid">
-          <div class="kpi accent-solar">
-            <div class="label">Production totale</div>
-            <div class="value" id="kpiProdTotale">–</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Consommation totale</div>
-            <div class="value" id="kpiConsoTotale">–</div>
-          </div>
-          <div class="kpi accent-battery">
-            <div class="label">Qté autoconsommée</div>
-            <div class="value" id="kpiAutoconsoQty">–</div>
-          </div>
-          <div class="kpi accent-battery">
-            <div class="label">% autoconso. sans batterie</div>
-            <div class="value" id="kpiAutoconsoPctSansBatt">–</div>
-          </div>
-          <div class="kpi accent-solar">
-            <div class="label">Gain avec les panneaux</div>
-            <div class="value" id="kpiGainPanneaux">–</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Rentabilité des panneaux</div>
-            <div class="value" id="kpiRentabilitePanneaux">–</div>
-            <div class="note" id="kpiRentabilitePanneauxNote"></div>
-          </div>
-          <div class="kpi">
-            <div class="label">Export production totale</div>
-            <div class="value" id="kpiExportTotale">–</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Perte en euros totale</div>
-            <div class="value" id="kpiPerteEuros">–</div>
-            <div class="note">Surplus exporté non autoconsommé, au tarif applicable</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card card--battery">
-        <h2>
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="7" width="18" height="11" rx="2.5"/><path d="M22 11v3" stroke-linecap="round"/><path d="M7 12h6" stroke-linecap="round"/></svg>
-          Simulateur de batterie
-        </h2>
-        <div class="kpi-grid">
-          <div class="kpi accent-battery">
-            <div class="label">Qté totale stockée</div>
-            <div class="value" id="kpiQtyStockee">–</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Nb de cycles sur la période</div>
-            <div class="value" id="kpiNbCycles">–</div>
-          </div>
-          <div class="kpi accent-battery">
-            <div class="label">Qté utilisée grâce à la batterie</div>
-            <div class="value" id="kpiQtyUtiliseeBatt">–</div>
-          </div>
-          <div class="kpi accent-battery">
-            <div class="label">Économie grâce à la batterie</div>
-            <div class="value" id="kpiEconomieBatt">–</div>
-          </div>
-          <div class="kpi accent-battery">
-            <div class="label">Nouveau % d'autoconsommation</div>
-            <div class="value" id="kpiAutoconsoPctAvecBatt">–</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Durée de vie de la batterie</div>
-            <div class="value" id="kpiDureeVie">–</div>
-            <div class="note">Selon le nb de cycles nominal réglé dans Paramètres</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Rentabilité de la batterie</div>
-            <div class="value" id="kpiRentabiliteBatt">–</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="chart-wrap">
-        <h2>
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17 9 11l4 4 8-8" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 6h4v4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Évolution de l'autoconsommation
-        </h2>
-        <div class="legend-row">
-          <span class="legend-item"><span class="swatch" style="background:var(--grid)"></span>Autoconso. sans batterie</span>
-          <span class="legend-item"><span class="swatch" style="background:var(--battery)"></span>Autoconso. avec batterie</span>
-        </div>
-        <div class="legend-row">
-          <span class="legend-item"><span class="swatch" style="background:var(--solar)"></span>Autoproduction (avec batterie)</span>
-        </div>
-        <div id="autoconsoEvolutionChart" class="svg-chart"></div>
-      </div>
-
-      <div class="chart-wrap">
-        <h2>
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18" stroke-linecap="round"/></svg>
-          Vue journalière
-        </h2>
-        <div class="day-nav">
-          <button id="dayPrevBtn" class="day-nav-btn" aria-label="Jour précédent">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <span id="dayLabel" class="day-label">–</span>
-          <button id="dayNextBtn" class="day-nav-btn" aria-label="Jour suivant">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-        </div>
-        <div class="legend-row">
-          <span class="legend-item"><span class="swatch" style="background:var(--grid)"></span>Consommation totale</span>
-          <span class="legend-item"><span class="swatch" style="background:var(--solar)"></span>Production PV</span>
-          <span class="legend-item"><span class="swatch" style="background:var(--battery)"></span>Niveau batterie (kWh)</span>
-        </div>
-        <div id="dailyChart" class="svg-chart"></div>
-        <div class="chart-settings-note" id="chartSettingsNote"></div>
-        <div class="kpi-grid" style="margin-top:14px;">
-          <div class="kpi accent-solar">
-            <div class="label">Production PV du jour</div>
-            <div class="value" id="dayKpiProd">–</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Consommation totale du jour</div>
-            <div class="value" id="dayKpiConso">–</div>
-          </div>
-          <div class="kpi accent-battery">
-            <div class="label">Autoconsommation du jour</div>
-            <div class="value" id="dayKpiAutoconso">–</div>
-          </div>
-          <div class="kpi accent-battery">
-            <div class="label">Autoconsommation avec batterie</div>
-            <div class="value" id="dayKpiAutoconsoBatt">–</div>
-          </div>
-          <div class="kpi accent-solar">
-            <div class="label">Consommation PV</div>
-            <div class="value" id="dayKpiConsoPV">–</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Nb de cycles (jour)</div>
-            <div class="value" id="dayKpiCycles">–</div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-  </section>
-
-  <!-- ================= MÉTÉO & PROJECTION 1 AN ================= -->
-  <section class="view" id="view-meteo">
-
-    <div class="card">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.3-2A5 5 0 0 0 6 18" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Analyse météo &amp; projection 1 an
-      </h2>
-      <p class="note">
-        Croise ton historique Shelly avec l'ensoleillement passé de Gerzat (API Open-Meteo, gratuite) pour projeter production, autoconsommation et rentabilité sur 12 mois glissants.
-      </p>
-      <button class="btn btn-primary" id="loadMeteoBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v13" stroke-linecap="round"/><path d="M6 10l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20h16" stroke-linecap="round"/></svg>
-        Charger les données météo
-      </button>
-      <div class="file-status" id="meteoStatus">Aucune donnée météo chargée.</div>
-    </div>
-
-    <div id="meteoEmpty" class="empty-state">
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.3-2A5 5 0 0 0 6 18" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <p>Importe d'abord ton historique Shelly dans le Tableau de bord, puis charge la météo ici pour lancer la projection.</p>
-    </div>
-
-    <div id="meteoResults" style="display:none;">
-
-      <div class="card card--solar">
-        <h2>
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18" stroke-linecap="round"/></svg>
-          Projection sur 12 mois glissants
-        </h2>
-        <div class="kpi-grid">
-          <div class="kpi accent-solar">
-            <div class="label">Production projetée (1 an)</div>
-            <div class="value" id="mKpiProdAn">–</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Autoconsommation PV seul</div>
-            <div class="value" id="mKpiAutoconsoSeul">–</div>
-          </div>
-          <div class="kpi accent-battery">
-            <div class="label">Autoconsommation PV + batterie</div>
-            <div class="value" id="mKpiAutoconsoBatt">–</div>
-          </div>
-          <div class="kpi accent-solar">
-            <div class="label">Gains annuels (PV seul)</div>
-            <div class="value" id="mKpiGainsSeul">–</div>
-          </div>
-          <div class="kpi accent-battery">
-            <div class="label">Gains annuels (PV + batterie)</div>
-            <div class="value" id="mKpiGainsBatt">–</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Amortissement PV seul</div>
-            <div class="value" id="mKpiRoiSeul">–</div>
-          </div>
-          <div class="kpi accent-battery">
-            <div class="label">Amortissement PV + batterie</div>
-            <div class="value" id="mKpiRoiBatt">–</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="chart-wrap">
-        <h2>
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
-          Consommation, production vs ensoleillement
-        </h2>
-        <div class="legend-row">
-          <span class="legend-item"><span class="swatch" style="background:var(--grid)"></span>Consommation (kWh)</span>
-          <span class="legend-item"><span class="swatch" style="background:var(--solar)"></span>Production PV (kWh)</span>
-          <span class="legend-item"><span class="swatch" style="background:#e8c468"></span>Ensoleillement (h/jour)</span>
-        </div>
-        <div id="correlationChart" class="svg-chart"></div>
-        <div class="note" id="correlationNote" style="text-align:center; margin-top:6px;"></div>
-      </div>
-
-      <div class="chart-wrap">
-        <h2>
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18" stroke-linecap="round"/></svg>
-          Projection mensuelle (12 mois)
-        </h2>
-        <div class="legend-row">
-          <span class="legend-item"><span class="swatch" style="background:var(--solar)"></span>Production</span>
-          <span class="legend-item"><span class="swatch" style="background:var(--grid)"></span>Consommation</span>
-          <span class="legend-item"><span class="swatch" style="background:var(--battery)"></span>Autoconsommée (avec batterie)</span>
-        </div>
-        <div id="monthlyChart" class="svg-chart"></div>
-      </div>
-
-      <div class="card">
-        <h2>
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11.5 11.5H12V16h.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Hypothèses de la projection
-        </h2>
-        <p class="note">
-          Production estimée à partir de l'irradiance mensuelle moyenne des 12 derniers mois à Gerzat (ratio de performance 80%). Les profils horaires de consommation sont ceux réellement observés dans ton historique importé (moyenne jour de semaine / week-end), répartis selon le calendrier réel de chaque mois à venir. Ceci reste une estimation, pas une garantie — la météo réelle variera d'une année à l'autre.
-        </p>
-      </div>
-    </div>
-
-  </section>
-
-  <!-- ================= SETTINGS ================= -->
-  <section class="view" id="view-settings">
-
-    <div class="card card--grid">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M15.2 9a3.6 3.6 0 1 0 0 6M8 11.3h5.3M8 13h4.3" stroke-linecap="round"/></svg>
-        Tarifs électricité
-      </h2>
-      <div class="field-row">
-        <div class="field">
-          <label for="tarifJour">Tarif jour (€/kWh)</label>
-          <input type="number" id="tarifJour" step="0.001" min="0">
-        </div>
-        <div class="field">
-          <label for="tarifNuit">Tarif nuit (€/kWh)</label>
-          <input type="number" id="tarifNuit" step="0.001" min="0">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="hcStart">Début heures creuses</label>
-          <input type="number" id="hcStart" step="1" min="0" max="23">
-        </div>
-        <div class="field">
-          <label for="hcEnd">Fin heures creuses</label>
-          <input type="number" id="hcEnd" step="1" min="0" max="23">
-        </div>
-      </div>
-      <p class="field-hint">Heures au format 24h (ex. 22 → 6 pour 22h-6h).</p>
-    </div>
-
-    <div class="card card--solar">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.5M19.5 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" stroke-linecap="round"/></svg>
-        Installation photovoltaïque
-      </h2>
-      <div class="field-row">
-        <div class="field">
-          <label for="prixPanneaux">Prix de l'installation (€)</label>
-          <input type="number" id="prixPanneaux" step="10" min="0">
-        </div>
-        <div class="field">
-          <label for="puissanceKwc">Puissance installée (kWc)</label>
-          <input type="number" id="puissanceKwc" step="0.1" min="0.1">
-        </div>
-      </div>
-    </div>
-
-    <div class="card card--battery">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="7" width="18" height="11" rx="2.5"/><path d="M22 11v3" stroke-linecap="round"/><path d="M7 12h6" stroke-linecap="round"/></svg>
-        Batterie
-      </h2>
-      <div class="field-row">
-        <div class="field">
-          <label for="capaciteKwh">Capacité (kWh)</label>
-          <input type="number" id="capaciteKwh" step="0.1" min="0.1">
-        </div>
-        <div class="field">
-          <label for="prixBatterie">Prix d'achat (€)</label>
-          <input type="number" id="prixBatterie" step="10" min="0">
-        </div>
-      </div>
-
-      <details class="adv">
-        <summary>
-          Réglages avancés
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </summary>
-
-        <div class="field-row">
-          <div class="field">
-            <label for="socMinPct">SOC minimal (%)</label>
-            <input type="number" id="socMinPct" step="1" min="0" max="90">
-          </div>
-          <div class="field">
-            <label for="socInitialPct">SOC initial (%)</label>
-            <input type="number" id="socInitialPct" step="1" min="0" max="100">
-          </div>
-        </div>
-        <p class="field-hint">SOC minimal : seuil de décharge que la batterie ne descend jamais en dessous, pour préserver sa durée de vie.</p>
-
-        <div class="field-row" style="margin-top:12px;">
-          <div class="field">
-            <label for="rendementPct">Rendement aller-retour (%)</label>
-            <input type="number" id="rendementPct" step="1" min="1" max="100">
-          </div>
-          <div class="field">
-            <label for="puissanceMaxKw">Puissance max charge/décharge (kW)</label>
-            <input type="number" id="puissanceMaxKw" step="0.1" min="0">
-          </div>
-        </div>
-        <div class="field" style="margin-top:12px;">
-          <label for="dureeVieCycles">Durée de vie nominale (cycles)</label>
-          <input type="number" id="dureeVieCycles" step="100" min="100">
-        </div>
-      </details>
-    </div>
-
-    <div class="settings-actions btn-row">
-      <button class="btn btn-primary" id="saveSettingsBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Enregistrer
-      </button>
-      <button class="btn btn-secondary" id="resetSettingsBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 1 2.6 6.3" stroke-linecap="round"/><path d="M3 21v-6h6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Réinitialiser
-      </button>
-    </div>
-
-    <div class="card" style="margin-top:18px;">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 8c1.5 1.5 3 1.5 4.5 0s3-1.5 4.5 0 3 1.5 4.5 0 3-1.5 4.5 0" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 14c1.5 1.5 3 1.5 4.5 0s3-1.5 4.5 0 3 1.5 4.5 0 3-1.5 4.5 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Piscine (projection saisonnière)
-      </h2>
-      <p class="note">Ton historique importé inclut le fonctionnement de la pompe — ces réglages permettent à la projection 1 an de ne pas l'appliquer aux mois hors saison.</p>
-      <div class="field-check">
-        <input type="checkbox" id="poolActive">
-        <label for="poolActive">J'ai une piscine avec pompe pilotée en journée</label>
-      </div>
-
-      <details class="adv" open>
-        <summary>
-          Détails de la pompe et de la saison
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </summary>
-        <div class="field-row">
-          <div class="field">
-            <label for="poolPowerKw">Puissance pompe (kW)</label>
-            <input type="number" id="poolPowerKw" step="0.05" min="0">
-          </div>
-          <div class="field">
-            <label for="poolMonthStart">Mois de début saison</label>
-            <input type="number" id="poolMonthStart" step="1" min="1" max="12">
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="poolStartHour">Heure de début</label>
-            <input type="number" id="poolStartHour" step="1" min="0" max="23">
-          </div>
-          <div class="field">
-            <label for="poolEndHour">Heure de fin</label>
-            <input type="number" id="poolEndHour" step="1" min="0" max="23">
-          </div>
-        </div>
-        <div class="field">
-          <label for="poolMonthEnd">Mois de fin saison</label>
-          <input type="number" id="poolMonthEnd" step="1" min="1" max="12">
-        </div>
-      </details>
-    </div>
-
-    <div class="card" style="margin-top:18px;">
-      <h2>
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5" stroke-linecap="round"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" stroke-linecap="round"/></svg>
-        Données importées
-      </h2>
-      <div class="file-status" id="dataSummaryText">Aucune donnée en mémoire.</div>
-      <button class="btn btn-secondary btn-danger" id="clearDataBtn" style="margin-top:10px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16" stroke-linecap="round"/><path d="M10 11v6M14 11v6" stroke-linecap="round"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Effacer les données importées
-      </button>
+<main class="container">
+  <section id="emptyState" class="hero card">
+    <div class="hero-icon">⚡</div>
+    <div>
+      <h2>Simulez votre batterie à partir de vos données réelles</h2>
+      <p>Le CSV est lu directement dans le navigateur : aucune donnée Shelly n'est envoyée sur un serveur.</p>
+      <div class="chips"><span>PapaParse</span><span>Chart.js</span><span>localStorage</span><span>hors-ligne</span></div>
     </div>
   </section>
 
+  <section id="dashboard" hidden>
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Tableau de bord</div>
+        <h2>Vue d'ensemble</h2>
+        <p id="periodLabel" class="muted"></p>
+      </div>
+      <div id="fileLabel" class="status">Aucun fichier</div>
+    </div>
+
+    <div class="kpi-grid">
+      <article class="kpi card"><span>Production totale</span><strong id="kpiProduction">—</strong><small>kWh</small></article>
+      <article class="kpi card"><span>Autoconsommation directe</span><strong id="kpiAutoconso">—</strong><small>kWh</small></article>
+      <article class="kpi card"><span>Économie batterie</span><strong id="kpiEconomy">—</strong><small>€ sur la période</small></article>
+      <article class="kpi card"><span>Amortissement estimé</span><strong id="kpiPayback">—</strong><small>selon batterie sélectionnée</small></article>
+    </div>
+
+    <div class="grid two">
+      <article class="card chart-card">
+        <div class="card-head"><h3>Flux énergétiques</h3><span>kWh / heure</span></div>
+        <div class="chart-wrap"><canvas id="energyChart"></canvas></div>
+      </article>
+      <article class="card chart-card">
+        <div class="card-head"><h3>Niveau de batterie</h3><span>SOC simulé</span></div>
+        <div class="chart-wrap"><canvas id="batteryChart"></canvas></div>
+      </article>
+    </div>
+
+    <article class="card">
+      <div class="card-head">
+        <div><h3>Comparaison des batteries</h3><p class="muted">Simulation continue sur tout l'historique, sans remise à zéro à minuit.</p></div>
+      </div>
+      <div class="table-scroll">
+        <table id="comparisonTable">
+          <thead><tr>
+            <th>Batterie</th><th>Capacité</th><th>Prix</th><th>Économie/j</th><th>Cycles</th><th>Cycles/an</th><th>Amortissement</th><th>Rentable avant fin de vie</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><h3>Détail de la simulation</h3><span id="rowCount"></span></div>
+      <div class="table-scroll">
+        <table id="detailTable">
+          <thead><tr>
+            <th>Date</th><th>Heure</th><th>Consommation</th><th>PV</th><th>Export</th><th>Batterie</th><th>Réseau après batterie</th><th>Tarif</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <section class="settings card">
+    <div class="section-head compact">
+      <div><div class="eyebrow">Configuration</div><h2>Paramètres</h2></div>
+      <button id="resetBtn" class="button ghost">Réinitialiser</button>
+    </div>
+    <div class="form-grid">
+      <label>Tarif jour (€/kWh)<input id="dayPrice" type="number" min="0" step="0.0001"></label>
+      <label>Tarif nuit (€/kWh)<input id="nightPrice" type="number" min="0" step="0.0001"></label>
+      <label>Batterie active<select id="batterySelect"></select></label>
+      <label>Capacité (kWh)<input id="capacity" type="number" min="0" step="0.01"></label>
+      <label>Prix d'achat (€)<input id="batteryPrice" type="number" min="0" step="1"></label>
+      <label>SOC minimum (%)<input id="socMin" type="number" min="0" max="99" step="1"></label>
+      <label>Rendement aller-retour (%)<input id="efficiency" type="number" min="1" max="100" step="1"></label>
+      <label>Puissance max (kW)<input id="maxPower" type="number" min="0" step="0.1"><small>0 = illimitée</small></label>
+      <label>Durée de vie (cycles)<input id="lifeCycles" type="number" min="0" step="100"></label>
+      <label>Durée de vie indicative (ans)<input id="lifeYears" type="number" min="0" step="1"></label>
+    </div>
+    <p id="saveHint" class="muted">Les paramètres sont enregistrés automatiquement dans le navigateur.</p>
+  </section>
 </main>
 
-<div class="save-toast" id="saveToast">Paramètres enregistrés</div>
+<footer>Les calculs sont des estimations : rendement, puissance, tarifs et état initial de batterie doivent être vérifiés avec vos données réelles.</footer>
 
-<nav class="tabbar">
-  <button data-view="dashboard" class="active">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V10M12 19V5M20 19v-7" stroke-linecap="round"/></svg>
-    Tableau de bord
-  </button>
-  <button data-view="meteo">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.3-2A5 5 0 0 0 6 18" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Météo &amp; 1 an
-  </button>
-  <button data-view="settings">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.96 19.3a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.7 8.96a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9.1A1.7 1.7 0 0 0 10.14 3H10.09A2 2 0 1 1 14.09 3h-.05a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.05A1.7 1.7 0 0 0 21 10.14V10.09a2 2 0 1 1 0 3.91h-.05a1.7 1.7 0 0 0-1.55 1z"/></svg>
-    Paramètres
-  </button>
-</nav>
-
-<script src="app.js" defer></script>
-<script src="meteo.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.5.3/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
